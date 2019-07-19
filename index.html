@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html>
+    </head>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Title</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="styles.css">
+    <head>
+    <body>
+        <div id="waldo" class="grid-container">
+            <div class="grid-item" id="grid1">1</div>
+            <div class="grid-item" id="grid2">2</div>
+            <div class="grid-item" id="grid3">3</div>
+            <div class="grid-item" id="grid4">4</div>
+            <div class="grid-item" id="grid5">5</div>
+            <div class="grid-item" id="grid6">6</div>
+            <div class="grid-item" id="grid7">7</div>
+            <div class="grid-item" id="grid8">8</div>
+            <div class="grid-item" id="grid9">9</div>
+            <div class="grid-item" id="grid10">10</div>
+            <div class="grid-item" id="grid11">11</div>
+            <div class="grid-item" id="grid12">12</div>
+            <div class="grid-item" id="grid13">13</div>
+            <div class="grid-item" id="grid14">14</div>
+            <div class="grid-item" id="grid15">15</div>
+            <div class="grid-item" id="grid16">16</div>
+            <div class="grid-item" id="grid17">17</div>
+            <div class="grid-item" id="grid18">18</div>
+            <div class="grid-item" id="grid19">19</div>
+            <div class="grid-item" id="grid20">20</div>
+        </div>
+
+        <script src="./webgazer.js"></script>
+        <script>
+            function magnify (imgID, zoom) {
+                var img, glass, w, h, bw;
+                img = document.getElementById(imgID);
+
+                /* Create magnifier glass: */
+                glass = document.createElement("DIV");
+                glass.setAttribute("class", "img-magnifier-glass");
+                glass.setAttribute("id", "img-magnifier-glass-id");
+
+                var indicator = document.createElement("DIV");
+                indicator.setAttribute("id", "average-indicator");
+
+                /* Insert magnifier glass: */
+                img.parentElement.insertBefore(glass, img);
+
+                /* Set background properties for the magnifier glass: */
+                //glass.style.backgroundColor = "black";
+                bw = 3;
+                w = glass.offsetWidth / 2;
+                h = glass.offsetHeight / 2;
+            }   
+            //uncomment line below for magnifying glass/ smooted mouse or whatever you wanna call it 
+            //magnify("waldo", 2);
+        
+            //script for hiding or showing the camera with face detection 
+            
+            var cameraOn = true;
+            
+            document.body.onkeyup = function(e){
+                if(e.keyCode == 32){
+                    triggerCamera();
+                }
+                if(e.keyCode == 84){
+                    startTest();
+                    if(cameraOn) triggerCamera();
+                }
+                if(e.keyCode == 67){
+                    startCalibration();
+                }
+            }
+
+
+            function triggerCamera() {
+                cameraOn = !cameraOn;
+                    var element1 = document.getElementById("webgazerVideoFeed");
+                    var element2 = document.getElementById("webgazerVideoCanvas");
+                    var element3 = document.getElementById("webgazerFaceOverlay");
+                    var element4 = document.getElementById("webgazerFaceFeedbackBox");
+
+                    element1.classList.toggle("hidden");
+                    element2.classList.toggle("hidden");
+                    element3.classList.toggle("hidden");
+                    element4.classList.toggle("hidden");
+            }
+        
+            // fills the testAreas Array with div elements and randomizes order
+
+            var testAreas;
+            fillTestAreaArray();
+
+            function fillTestAreaArray() {
+                var newArray = [];
+                for(var i = 1; i < 21; i++) {
+                    var newAreaObject = {
+                        areaID: i,
+                        areaElement: document.getElementById("grid" + i)
+                    }
+                    newArray.push(newAreaObject);
+                }
+
+                testAreas = shuffleArray(newArray);
+            }
+
+            function shuffleArray(a) {
+                var j, x, i;
+                for (i = a.length - 1; i > 0; i--) {
+                    j = Math.floor(Math.random() * (i + 1));
+                    x = a[i];
+                    a[i] = a[j];
+                    a[j] = x;
+                }
+                return a;
+            }
+        
+            // script for starting the test 
+
+            var results = [];
+
+            var areaCounter = 0;
+            var areaCheckEnabled = false;
+            var firstTimestamp = 0;
+
+            var templateResultObject = {
+                    testAreaID: null,
+                    testareaX1: null,
+                    testareaY1: null,
+                    testareaX2: null, 
+                    testareaY2: null,
+                    predictionPointsX: [],
+                    predictionPointsY: [],
+                    calculatedPointsX: [],
+                    calculatedPointsY: [],
+                    timePassed: [],
+            }
+
+            function startTest() {
+                console.log("start the test");
+                areaCounter = 0;
+
+                setTimeout(function(){
+                    testAreas[areaCounter].areaElement.style.backgroundColor = "green";
+                    var date = new Date();
+                    firstTimestamp = date.getTime();
+                    areaCheckEnabled = true;
+                }, 2000);
+            }
+
+
+            function addData(xCalculated, yCalculated, xPrediction, yPrediction) {
+                var date = new Date();
+                var newTimestamp = date.getTime();
+                var time =  newTimestamp - firstTimestamp;
+
+                templateResultObject.calculatedPointsX.push(xCalculated);
+                templateResultObject.calculatedPointsY.push(yCalculated);
+                templateResultObject.predictionPointsX.push(xPrediction);
+                templateResultObject.predictionPointsY.push(yPrediction);
+                templateResultObject.timePassed.push(time);
+
+                // at 10 seconds stop the checking and add the result
+                if(time >= 5000) {         
+                    areaCheckEnabled = false;
+                    addNewResult();
+                }
+            }
+
+            function addNewResult() {
+                
+                var boundingRect = testAreas[areaCounter].areaElement.getBoundingClientRect();
+
+                templateResultObject.testAreaID = testAreas[areaCounter].areaID;
+                templateResultObject.testareaX1 = boundingRect.x;
+                templateResultObject.testareaY1 = boundingRect.y;
+                templateResultObject.testareaX2 = boundingRect.x + boundingRect.width;
+                templateResultObject.testareaY2 = boundingRect.y + boundingRect.height;
+
+                results.push(templateResultObject);
+
+                resetTemplate();
+
+                if(areaCounter < 19) {
+                    testAreas[areaCounter].areaElement.style.backgroundColor = "white";
+                    areaCounter++;
+                    setTimeout(function(){
+                        var date = new Date();
+                        testAreas[areaCounter].areaElement.style.backgroundColor = "green";
+                        firstTimestamp = date.getTime();
+                        areaCheckEnabled = true;
+                    }, 2000);
+                }
+                else{
+                    testAreas[areaCounter].areaElement.style.backgroundColor = "white";
+                    endTest();
+                }
+            }
+
+            function resetTemplate() {
+                templateResultObject = {
+                    testAreaID: null,
+                    testareaX1: null,
+                    testareaY1: null,
+                    testareaX2: null, 
+                    testareaY2: null,
+                    predictionPointsX: [],
+                    predictionPointsY: [],
+                    calculatedPointsX: [],
+                    calculatedPointsY: [],
+                    timePassed: []
+                }
+            }
+
+            function endTest() {
+                areaCheckEnabled = false;
+                console.log(results);
+                alert("Test over!");
+            }
+            
+            
+        
+
+            const collisionSVG = "collisionSVG";
+            var force = [];
+            var nodes = [];
+
+            var positionX = 0;
+            var positionY = 0;
+
+
+            var averageX = 0;
+            var averageY = 0;
+            var positionsX = [];
+            var positionsY = [];
+
+            
+            
+            window.onload = function() {
+            
+                var localstorageLabel = 'webgazerGlobalData';
+                window.localStorage.setItem(localstorageLabel, null);
+            
+                webgazer.setRegression('ridge') /* currently must set regression and tracker */
+                .setTracker('clmtrackr')
+                .begin()
+                .showPredictionPoints(false); /* shows a square every 100 milliseconds where current prediction is */
+            
+                function checkIfReady() {
+                var feedbackBox = document.getElementById( webgazer.params.faceFeedbackBoxId );
+                
+                if (!webgazer.isReady()) {
+                    setTimeout(checkIfReady, 100);
+                }
+                // This isn't strictly necessary, but it makes the DOM easier to read
+                // to have the z draw order reflect the DOM order.
+                else if( typeof(feedbackBox) == 'undefined' || feedbackBox == null ) {
+                    setTimeout(checkIfReady, 100);
+                }
+                else
+                {
+                    // Add the SVG component on the top of everything.
+                    webgazer.setGazeListener( eyeListener );
+                    
+                }
+                }
+            
+                setTimeout(checkIfReady,100);
+            };
+            
+            window.onbeforeunload = function() {
+                //webgazer.end(); //Uncomment if you want to save the data even if you reload the page.
+                window.localStorage.clear(); //Comment out if you want to save data across different sessions
+            }
+            
+            
+            
+            var eyeListener = function(data, clock) {
+                if(!data)
+                return;
+
+                moveMagnifierToEyePosition(data.x, data.y);
+            
+                var cl = webgazer.getTracker().clm;
+                var whr = webgazer.getVideoPreviewToCameraResolutionRatio();
+            }
+
+            
+            function moveMagnifierToEyePosition(x, y) {
+                //console.log("moving");
+                var img = document.getElementById("waldo");
+                var glass = document.getElementById("img-magnifier-glass-id");
+
+                var moveToNewAverage = findNewAverage(x, y);
+
+                // TODO if areaCheckEnabled call the addData method 
+
+                if(areaCheckEnabled) {
+                    addData(averageX, averageY, x, y);
+                }
+
+                // END TODO
+
+                if(moveToNewAverage) {
+                    x = averageX;
+                    y = averageY;
+                    /*
+                    console.log("new average");
+                    console.log(averageX, averageY);
+                    */
+                }
+                else {
+                    /*
+                    console.log("old average");
+                    console.log(averageX, averageY);
+                    */
+                    return;
+                } 
+
+                if(glass) {
+                    var zoom = 2;
+                    var bw = 3;
+                    var w = glass.offsetWidth / 2;
+                    var h = glass.offsetHeight / 2;
+                    
+                    
+                    /* Prevent the magnifier glass from being positioned outside the image: */
+                    if (x > img.width - (w / zoom)) {x = img.width - (w / zoom);}
+                    if (x < w / zoom) {x = w / zoom;}
+                    if (y > img.height - (h / zoom)) {y = img.height - (h / zoom);}
+                    if (y < h / zoom) {y = h / zoom;}
+                    /* Set the position of the magnifier glass: */
+                    //glass.style.left = (x - w) + "px";
+                    //glass.style.top = (y - h) + "px";
+                    glass.style.transform = "translate(" + (x - w) + "px," + (y - h) + "px)";
+                    
+
+                    /* Display what the magnifier glass "sees": */
+                    glass.style.backgroundPosition = "-" + ((x * zoom) - w + bw) + "px -" + ((y * zoom) - h + bw) + "px";
+                
+                
+                }
+            }
+
+            function findNewAverage(x, y) {
+                var n = 20;
+                var minimalDistance = 50;
+                var newAverageX;
+                var newAverageY;
+
+                if(positionsX.length < n) {    
+                    positionsX.push(x);
+                    positionsY.push(y);
+                    return;
+                }
+
+                positionsX.shift();
+                positionsY.shift();
+
+                newAverageX = Math.round(positionsX.reduce(getSum) / n);
+                newAverageY = Math.round(positionsY.reduce(getSum) / n);
+
+                //console.log(newAverageX + " x, " + newAverageY + " y");
+                
+                if(averageX === 0 && averageY === 0) {
+                    averageX = newAverageX;
+                    averageY = newAverageY;
+                    return true;
+                }
+
+                var xDiff = averageX - newAverageX;
+                var yDiff = averageY - newAverageY;
+                var distance = Math.sqrt(Math.pow(xDiff, 2) + Math.pow(yDiff, 2));
+
+                //console.log(distance);
+                if(distance > minimalDistance) {
+                    averageX = newAverageX;
+                    averageY = newAverageY;
+                    return true;
+                }
+
+
+                return false;
+            }
+
+            function getSum(sum, val){
+                return (sum + val);
+            } 
+
+
+            var order = ["grid1", "grid5", "grid20", "grid16", "grid3", "grid10", "grid15", "grid18" ,"grid11" ,"grid6" ,"grid8" ,"grid13"];
+            var areaIndex = 0;
+            var calibrationClicks = 0;
+            var currentCalibrationArea;
+
+            function startCalibration() {
+                areaIndex = 0;
+                calibrationClicks = 0;
+                document.getElementById(order[areaIndex]).style.backgroundColor = "green";
+                setCalibrationEventListener();
+            }
+
+            function nextCalibrationArea() {
+                if(areaIndex < order.length - 1){
+                    calibrationClicks = 0;
+                    document.getElementById(order[areaIndex]).style.backgroundColor = "white";
+                    areaIndex ++;
+                    document.getElementById(order[areaIndex]).style.backgroundColor = "green";
+                }
+                else{
+                    calibrationClicks = 0;
+                    document.getElementById(order[areaIndex]).style.backgroundColor = "white";
+                    areaIndex = 0;
+                    alert("calibration finished");
+                }
+            }
+
+            function setCalibrationEventListener() {
+                document.addEventListener('click', function (event) {
+                    if(event.target.id === order[areaIndex]){
+                        calibrationClicks ++;
+                        if(calibrationClicks >= 5) {
+                            nextCalibrationArea();
+                        }
+                    }
+                })
+            }
+
+            document.ondblclick = function(evt) {
+                if (window.getSelection)
+                    window.getSelection().removeAllRanges();
+                else if (document.selection)
+                    document.selection.empty();
+            }
+        </script>
+    </body>    
+
+</html>
